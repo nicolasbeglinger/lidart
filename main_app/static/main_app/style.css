@@ -1,0 +1,11 @@
+/* Set styles for card elements */
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+/* Set padding for card body */
+.card-body {
+    padding: 1.25rem;
+}
+
