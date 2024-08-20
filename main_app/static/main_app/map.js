@@ -1,23 +1,43 @@
- // Create map and attach id to element with id "mapid"
+
+
+
+
+var layers = [
+    L.tileLayer.swiss({
+        format: "png",
+        layer: "ch.swisstopo.swisstlm3d-karte-farbe",
+    }),
+    L.tileLayer.swiss({
+        format: "png",
+        layer: "ch.swisstopo.swisssurface3d-reliefschattierung-multidirektional",
+        opacity: 0.25,
+        maxNativeZoom: 26
+    })
+]
+
+
+
+// Create map and attach id to element with id "mapid"
  var map = L.map("mapid", {
     // Use LV95 (EPSG:2056) projection
     crs: L.CRS.EPSG21781,
     center: [47.370185, 8.543837],
-    zoom: 27
+    zoom: 27,
+    minZoom: 26,
+    maxZoom: 28,
+    layers: layers
 });
 
-// Add Swiss layer with default options
-L.tileLayer.swiss().addTo(map);
 
-// // Center the map on Switzerland
-// map.fitSwitzerland();
 
 var bbox_for_display = new L.FeatureGroup();
 map.addLayer(bbox_for_display);
 
 var drawControl = new L.Control.Draw({
     edit: {
-        featureGroup: bbox_for_display
+        featureGroup: bbox_for_display,
+        edit: false,
+        remove: false
     },
     draw: {
         polyline: false,
@@ -28,11 +48,17 @@ var drawControl = new L.Control.Draw({
         rectangle: true
     }
 });
-map.addControl(drawControl);
+map.addControl(drawControl)
+
+
+map.on('draw:drawstart', function (e) {
+    bbox_for_display.clearLayers()
+})
 
 map.on('draw:created', function (e) {
-    var type = e.layerType,
-        layer = e.layer;
+
+    var type = e.layerType, layer = e.layer;
+
     if (type === 'rectangle') {
         bbox_for_display.addLayer(layer);
 
