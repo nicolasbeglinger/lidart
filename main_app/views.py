@@ -95,8 +95,9 @@ def plot_lidar(lateral_vals, depth_vals, Z, focal_value, flipped=False,
     plt.scatter(
         x=lateral_vals,
         y=Z,
-        s= 1 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 100,
-        alpha=sigma_decay(depth_vals, focal_abs_value, alpha_decay),
+        # s= 1 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 100,
+        # alpha=sigma_decay(depth_vals, focal_abs_value, alpha_decay),
+        s=1,
         color="white"
         )
     plt.axis('equal')
@@ -106,24 +107,6 @@ def plot_lidar(lateral_vals, depth_vals, Z, focal_value, flipped=False,
 def home(request):
     return render(request, 'home.html')
 
-
-@csrf_exempt  # Note: Handle CSRF appropriately for production
-@require_http_methods(["POST"])
-def save_bbox(request):
-    try:
-        data = json.loads(request.body)
-        bbox = data.get('bbox', {})
-        print("Received bbox:", bbox)  # Log the bbox to console or handle as needed
-
-
-        # Here you might save these to a model or process them further
-        return JsonResponse({'status': 'success', 'bbox': bbox})
-    except json.JSONDecodeError as e:
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
-    except KeyError as e:
-        return JsonResponse({'status': 'error', 'message': 'Missing data in JSON'}, status=400)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @require_http_methods(["POST"])
 def lidart_plot(request):
