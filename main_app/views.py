@@ -10,10 +10,8 @@ import laspy
 import numpy as np
 from sklearn.decomposition import PCA
 import pandas as pd
-import geopandas as gpd
 import os
 import urllib.request
-from datetime import datetime
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
