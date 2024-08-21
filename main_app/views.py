@@ -154,6 +154,12 @@ def lidart_plot(request):
         (points.Y < maxy) 
     ]
 
+    cap = 30_000
+    if filtered.shape[0] > cap:
+        filtered = filtered.sample(cap)
+
+    print(filtered.shape[0])
+
     x, y = rotate_points(
         filtered.X,
         filtered.Y
