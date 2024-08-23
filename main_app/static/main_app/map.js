@@ -1,26 +1,28 @@
 
 
-var layers = [
-    L.tileLayer.swiss({
-        format: "png",
-        layer: "ch.swisstopo.swisstlm3d-karte-farbe",
+var overlayMaps = {
+    "swissIMAGE": L.tileLayer.swiss({
+        layer: "ch.swisstopo.swissimage",
+        maxNativeZoom: 28
     }),
-    L.tileLayer.swiss({
+    "swissSURFACE3D Relief": L.tileLayer.swiss({
         format: "png",
         layer: "ch.swisstopo.swisssurface3d-reliefschattierung-multidirektional",
-        opacity: 0.25,
+        opacity: 0.5,
         maxNativeZoom: 26
     })
-]
+}
 
 const map = L.map("mapid", {
     crs: L.CRS.EPSG21781,
-    center: [47.370185, 8.543837],
-    zoom: 27,
-    minZoom: 20,
+    center: [47.370185, 8.543],
+    zoom: 26,
+    minZoom: 24,
     maxZoom: 28,
-    layers: layers
+    layers: [L.tileLayer.swiss()]
 });
+
+var layercontrol = L.control.layers([], overlayMaps).addTo(map);
 
 // Draw Control Setup (unchanged)
 var bbox_for_display = new L.FeatureGroup();
@@ -29,7 +31,7 @@ map.addLayer(bbox_for_display);
 const bbox_id = bbox_for_display._leaflet_id;
 
 // Function to draw the grid
-function drawGrid() {
+function drawGrid(sidelength=500) {
 
     map.eachLayer(function(layer) {
         if (!!layer.toGeoJSON) {  // Check if the layer has a toGeoJSON method, indicating it's a vector layer
@@ -55,30 +57,34 @@ function drawGrid() {
     var sw = L.CRS.EPSG2056.project(bounds.getSouthWest());
     var ne = L.CRS.EPSG2056.project(bounds.getNorthEast());
 
-    var startX = Math.floor(sw.x / 1000) * 1000;
-    var endX = Math.ceil(ne.x / 1000) * 1000;  // Use ceil to ensure full coverage
-    var startY = Math.floor(sw.y / 1000) * 1000;
-    var endY = Math.ceil(ne.y / 1000) * 1000;  // Use ceil to ensure full coverage
+    var startX = Math.floor(sw.x / 500) * 500;
+    var endX = Math.ceil(ne.x / 500) * 500;  // Use ceil to ensure full coverage
+    var startY = Math.floor(sw.y / 500) * 500;
+    var endY = Math.ceil(ne.y / 500) * 500;  // Use ceil to ensure full coverage
 
     let xmin = null;
     let xmax = null;
     let ymin = null;
     let ymax = null;
 
+    // console.log(sw.x)
+    console.log(Math.floor(sw.x / 500) * 500)
+    console.log(startX, endX, startY, endY)
     // Loop through the grid coordinates
-    for (let x = startX; x < endX; x += 1000) {
+    for (let x = startX; x < endX; x += 500) {
+
         
         if (!xmin) {
             xmin = L.CRS.EPSG2056.unproject(L.point(x, startY)).lng;
         }
-        xmax = L.CRS.EPSG2056.unproject(L.point(x+1000, startY+1000)).lng;
+        xmax = L.CRS.EPSG2056.unproject(L.point(x+500, startY+500)).lng;
 
-        for (let y = startY; y < endY; y += 1000) {
+        for (let y = startY; y < endY; y += 500) {
 
             if (!ymin) {
                 ymin = L.CRS.EPSG2056.unproject(L.point(startX, y)).lat;
             }
-            ymax = L.CRS.EPSG2056.unproject(L.point(startX, y+1000)).lat;
+            ymax = L.CRS.EPSG2056.unproject(L.point(startX, y+500)).lat;
 
             const bounds = [
                 [ymin, xmin],
