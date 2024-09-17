@@ -17,7 +17,7 @@ const map = L.map("mapid", {
     crs: L.CRS.EPSG21781,
     center: [47.370185, 8.543],
     zoom: 26,
-    minZoom: 24,
+    minZoom: 20,
     maxZoom: 28,
     layers: [L.tileLayer.swiss()]
 });
@@ -94,7 +94,7 @@ function drawGrid(sidelength=500) {
             // Draw the rectangle using the stored coordinates
             L.rectangle(bounds, {
                 color: 'green',
-                weight: 3,
+                weight: 6,
                 fillOpacity: 0,
                 interactive: false  // Ensure grid is non-interactive
             }).addTo(map);

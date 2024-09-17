@@ -119,15 +119,50 @@ def lidart_plot(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-    url_laz = "https://maps.zh.ch/download/hoehen/2022/lidar/2683000_1247000.laz"
+    minx, maxx, miny, maxy = [value for value in bbox.values()]
+
+    x_tile_test = np.floor(minx / 500.0) * 500.0 == np.floor(maxx / 500.0) * 500.0
+    y_tile_test = np.floor(miny / 500.0) * 500.0 == np.floor(maxy / 500.0) * 500.0
+
+    if not (x_tile_test and y_tile_test):
+
+        plt.text(0.5, 0.5,
+            "Bbox was selected across tile borders.\nThis is not allowed!",
+            fontsize="xx-large", horizontalalignment="center")
+        plt.axis('off')
+
+        # Create a buffer to capture the image
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png')
+        plt.close()
+        buffer.seek(0)
+
+        # Return the buffer contents in the response
+        return HttpResponse(buffer.getvalue(), content_type='image/png')
+
+    x_lower_500 = int(np.floor(minx / 500.0) * 500.0)
+    y_lower_500 = int(np.floor(miny / 500.0) * 500.0)
+
+
+    url_laz = f"https://maps.zh.ch/download/hoehen/2022/lidar/2{x_lower_500}_1{y_lower_500}.laz"
 
     filename = url_laz.split(os.sep)[-1]
     new_path = os.path.join(settings.TMP_DIR, filename)
 
     if not os.path.exists(new_path):
+
+        list_of_files = os.listdir(settings.TMP_DIR)
+        list_of_full_paths = [os.path.join(settings.TMP_DIR, x) for x in list_of_files]
+
+        if len(list_of_files) == 8:
+            oldest_file = min(list_of_full_paths, key=os.path.getctime)
+            os.remove(oldest_file)
+
+
         with urllib.request.urlopen(url_laz) as f:
             with open(new_path, "wb") as f_new:
                 f_new.write(f.read())
+            
     
     with laspy.open(new_path) as f:
         laz = f.read()
@@ -139,11 +174,8 @@ def lidart_plot(request):
         "Z": laz["Z"] / 1000,
     })
 
-    # outline = gpd.read_file(os.path.join(settings.BASE_DIR, "main_app", "files", "cut_geom.gpkg")).to_crs(21781)
-    # minx, miny, maxx, maxy = outline.bounds.values[0]
-    # # 683451.31124748, 247157.49661449, 683527.10629864, 247215.30924776
 
-    minx, maxx, miny, maxy = [value for value in bbox.values()]
+
 
 
 
@@ -160,45 +192,27 @@ def lidart_plot(request):
 
     print(filtered.shape[0])
 
-    x, y = rotate_points(
-        filtered.X,
-        filtered.Y
-        )
-
-    rotated = pd.DataFrame({
-        "X": x,
-        "Y": y,
-        "Z": filtered.Z
-    })
+    # x_rotated, y_rotated = rotate_points(
+    #     filtered.X,
+    #     filtered.Y
+    #     )
+    # rotated = pd.DataFrame({
+    #     "X": x_rotated,
+    #     "Y": y_rotated,
+    #     "Z": filtered.Z
+    # })
+    if maxx - minx > maxy - miny:
+        lateral = filtered.Y
+        depth = filtered.X
+    else:
+        lateral = filtered.X
+        depth = filtered.Y
 
     plot_lidar(
-        rotated.Y, rotated.Y, rotated.Z,
+        lateral, depth, filtered.Z,
         focal_value=30, bokeh=0
         )
 
-
-    # Create a buffer to capture the image
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png')
-    plt.close()
-    buffer.seek(0)
-
-    # Return the buffer contents in the response
-    return HttpResponse(buffer.getvalue(), content_type='image/png')
-
-
-
-
-
-
-def plot(request):
-    # Create a plot
-    plt.figure(figsize=(6,4))
-    plt.plot([1, 2, 3, 4], [10, 20, 25, 30], marker='o', color='blue', label='Line')
-    plt.title('Sample Plot')
-    plt.xlabel('X Axis')
-    plt.ylabel('Y Axis')
-    plt.legend()
 
     # Create a buffer to capture the image
     buffer = BytesIO()
