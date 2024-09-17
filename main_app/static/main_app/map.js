@@ -153,6 +153,10 @@ map.on('draw:created', function (e) {
             ymax: ne.y
         };
 
+        // Show the spinner
+        document.getElementById('spinner').classList.remove('d-none');
+        document.getElementById('plotted_lidar_data').innerHTML = '';
+
         fetch(plot_url, {
             method: 'POST',
             headers: {
@@ -174,6 +178,10 @@ map.on('draw:created', function (e) {
         .catch(error => {
             console.error('There was a problem with the fetch operation:', error);
             document.getElementById('plotted_lidar_data').innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+        })
+        .finally(() => {
+            // Hide the spinner
+            document.getElementById('spinner').classList.add('d-none');
         });
     }
 });
