@@ -16,7 +16,7 @@ var overlayMaps = {
 const map = L.map("mapid", {
     crs: L.CRS.EPSG21781,
     center: [47.370185, 8.543],
-    zoom: 26,
+    zoom: 22,
     minZoom: 20,
     maxZoom: 28,
     layers: [L.tileLayer.swiss()]
@@ -67,9 +67,7 @@ function drawGrid(sidelength=500) {
     let ymin = null;
     let ymax = null;
 
-    // console.log(sw.x)
-    console.log(Math.floor(sw.x / 500) * 500)
-    console.log(startX, endX, startY, endY)
+
     // Loop through the grid coordinates
     for (let x = startX; x < endX; x += 500) {
 
@@ -104,68 +102,78 @@ function drawGrid(sidelength=500) {
         ymin = null;
         xmin = xmax * 1;
     }
-    draw_cached(boundsGreen);
+    draw_cached(combinedArray);
 }
 
 var payload = null;
 //var bounds = null;
 
-// redgrid
+
 async function fetchData() {
-return fetch(cached_coords_url, {
-    method: 'GET',
-    headers: {
-        'Content-Type': 'text/json',
-        'X-CSRFToken': csrfToken
-    }})
-    .then(response => {
-        if (!response.ok) {
-            console.log(response)
-            throw new Error('Network response was not ok');
-        }
-    return response.json()
-    })
-    .then(data =>{
-        console.log(data);
-        xmin = L.CRS.EPSG2056.unproject(L.point(data.x[0], data.y[0])).lng;
-        ymin = L.CRS.EPSG2056.unproject(L.point(data.x[0], data.y[0])).lat;
-        xmax = L.CRS.EPSG2056.unproject(L.point(data.x[0] + 500, data.y[0] + 500)).lng;
-        ymax = L.CRS.EPSG2056.unproject(L.point(data.x[0] + 500, data.y[0] + 500)).lat;
+    return fetch(cached_coords_url, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'text/json',
+            'X-CSRFToken': csrfToken
+        }})
+        .then(response => {
+            if (!response.ok) {
+                console.log(response)
+                throw new Error('Network response was not ok');
+            }
+        return response.json()
+        })
+        .then(data =>{
 
-        fetch_bounds = [
-            [ymin, xmin],
-            [ymax, xmax]
-        ];
-//        console.log(fetch_bounds);
-        return fetch_bounds;
-    })
-    .catch(error => console.error('Error: ', error));
+            // Define constant height and width
+            const size = 500; // Both width and height are 500
+
+            // Combine the coordinates into the desired format with conversion
+            const combinedArray = data.x.map((xmin, index) => {
+                var ymin = data.y[index];
+
+                converted_xmin = L.CRS.EPSG2056.unproject(L.point(xmin, ymin)).lng;
+                converted_ymin = L.CRS.EPSG2056.unproject(L.point(xmin, ymin)).lat;
+                converted_xmax = L.CRS.EPSG2056.unproject(L.point(xmin + size, ymin + size)).lng;
+                converted_ymax = L.CRS.EPSG2056.unproject(L.point(xmin + size, ymin + size)).lat;
+
+                return [
+                    [converted_ymin, converted_xmin],
+                    [converted_ymax, converted_xmax]
+                ];
+            });
+
+            // console.log(combinedArray);
+            return combinedArray;
+        })
+        .catch(error => console.error('Error: ', error));
 }
 
-function draw_cached(bounds) {
-    L.rectangle(bounds, {
-        color: 'green',
-        weight: 6,
-        fillOpacity: 0,
-        interactive: false  // Ensure grid is non-interactive
-    }).addTo(map);
+
+function draw_cached(combinedArray) {
+    for (let i = 0; i < combinedArray.length; i += 1) {
+
+        let currentBounds = combinedArray[i];
+
+        // console.log(bounds);
+        L.rectangle(currentBounds, {
+            color: 'green',
+            weight: 6,
+            fillOpacity: 0,
+            interactive: false  // Ensure grid is non-interactive
+        }).addTo(map);
+    }
 }
 
-var boundsGreen = null;
+var combinedArray = null;
 
 // Immediately execute the fetch and stop execution until it's done
 (async () => {
-    boundsGreen = await fetchData();
-    console.log(boundsGreen);
-    console.log('This runs after fetchData is fully resolved!');
-    // Further processing with the fetched data
-    // Draw the rectangle using the stored coordinates
+    combinedArray = await fetchData();
 
+    // Draw the grid initially
+    drawGrid();
 })();
-
-
-// Draw the grid initially
-drawGrid();
 
 
 // Update the grid when the map moves or zooms
@@ -240,6 +248,14 @@ map.on('draw:created', function (e) {
         .finally(() => {
             // Hide the spinner
             document.getElementById('spinner').classList.add('d-none');
+            
+            // Immediately execute the fetch and stop execution until it's done
+            (async () => {
+                combinedArray = await fetchData();
+
+                // Draw the grid initially
+                drawGrid();
+            })();
         });
     }
 });

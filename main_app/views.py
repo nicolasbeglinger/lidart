@@ -110,11 +110,11 @@ def home(request):
 
 @require_http_methods(["GET"])
 def get_cached_coords(request):
-    #filenames = os.listdir("tmp")
+    filenames = os.listdir("tmp")
 
     d = {
-        'x': [2683000],
-        'y': [1247000]
+        'x': [int(filename.split("_")[0]) for filename in filenames],
+        'y': [int(filename.split("_")[1].split(".")[0]) for filename in filenames]
     }
 
 
@@ -167,7 +167,7 @@ def lidart_plot(request):
         list_of_files = os.listdir(settings.TMP_DIR)
         list_of_full_paths = [os.path.join(settings.TMP_DIR, x) for x in list_of_files]
 
-        if len(list_of_files) == 7:
+        if len(list_of_files) >= 7:
             oldest_file = min(list_of_full_paths, key=os.path.getctime)
             os.remove(oldest_file)
 
