@@ -93,7 +93,7 @@ function drawGrid(sidelength=500) {
 
             // Draw the rectangle using the stored coordinates
             L.rectangle(bounds, {
-                color: 'green',
+                color: 'red',
                 weight: 6,
                 fillOpacity: 0,
                 interactive: false  // Ensure grid is non-interactive
@@ -104,7 +104,65 @@ function drawGrid(sidelength=500) {
         ymin = null;
         xmin = xmax * 1;
     }
+    draw_cached(boundsGreen);
 }
+
+var payload = null;
+//var bounds = null;
+
+// redgrid
+async function fetchData() {
+return fetch(cached_coords_url, {
+    method: 'GET',
+    headers: {
+        'Content-Type': 'text/json',
+        'X-CSRFToken': csrfToken
+    }})
+    .then(response => {
+        if (!response.ok) {
+            console.log(response)
+            throw new Error('Network response was not ok');
+        }
+    return response.json()
+    })
+    .then(data =>{
+        console.log(data);
+        xmin = L.CRS.EPSG2056.unproject(L.point(data.x[0], data.y[0])).lng;
+        ymin = L.CRS.EPSG2056.unproject(L.point(data.x[0], data.y[0])).lat;
+        xmax = L.CRS.EPSG2056.unproject(L.point(data.x[0] + 500, data.y[0] + 500)).lng;
+        ymax = L.CRS.EPSG2056.unproject(L.point(data.x[0] + 500, data.y[0] + 500)).lat;
+
+        fetch_bounds = [
+            [ymin, xmin],
+            [ymax, xmax]
+        ];
+//        console.log(fetch_bounds);
+        return fetch_bounds;
+    })
+    .catch(error => console.error('Error: ', error));
+}
+
+function draw_cached(bounds) {
+    L.rectangle(bounds, {
+        color: 'green',
+        weight: 6,
+        fillOpacity: 0,
+        interactive: false  // Ensure grid is non-interactive
+    }).addTo(map);
+}
+
+var boundsGreen = null;
+
+// Immediately execute the fetch and stop execution until it's done
+(async () => {
+    boundsGreen = await fetchData();
+    console.log(boundsGreen);
+    console.log('This runs after fetchData is fully resolved!');
+    // Further processing with the fetched data
+    // Draw the rectangle using the stored coordinates
+
+})();
+
 
 // Draw the grid initially
 drawGrid();

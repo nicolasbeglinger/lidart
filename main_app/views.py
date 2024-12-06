@@ -108,6 +108,19 @@ def home(request):
     return render(request, 'home.html')
 
 
+@require_http_methods(["GET"])
+def get_cached_coords(request):
+    #filenames = os.listdir("tmp")
+
+    d = {
+        'x': [2683000],
+        'y': [1247000]
+    }
+
+
+    return JsonResponse(d)
+
+
 @require_http_methods(["POST"])
 def lidart_plot(request):
     try:

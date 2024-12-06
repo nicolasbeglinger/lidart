@@ -82,6 +82,7 @@
 
         <script>
             const plot_url = "{% url 'lidart_plot' %}"
+            const cached_coords_url = "{% url 'get_cached_coords' %}"
             const csrfToken = '{{ csrf_token }}';
         </script>
         <script src="{% static '/main_app/map.js'%}"></script>
