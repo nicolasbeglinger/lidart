@@ -15,8 +15,8 @@ var overlayMaps = {
 
 const map = L.map("mapid", {
     crs: L.CRS.EPSG21781,
-    center: [47.370185, 8.543],
-    zoom: 22,
+    center: [47.379, 8.540],
+    zoom: 23,
     minZoom: 20,
     maxZoom: 28,
     layers: [L.tileLayer.swiss()]
@@ -202,6 +202,23 @@ map.on('draw:drawstart', function (e) {
     bbox_for_display.clearLayers()
 });
 
+let bokehSlider = document.getElementById("bokehRange");
+let distSlider = document.getElementById("distRange");
+let bbox = null;
+
+// Update value on input change
+bokehSlider.addEventListener("input", function () {
+    if (bbox) {
+        fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
+    }
+});
+
+distSlider.addEventListener("input", function () {
+    if (bbox) {
+        fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
+    }
+});
+
 map.on('draw:created', function (e) {
     var type = e.layerType, layer = e.layer;
 
@@ -212,50 +229,57 @@ map.on('draw:created', function (e) {
         var sw = L.CRS.EPSG21781.project(bounds.getSouthWest());
         var ne = L.CRS.EPSG21781.project(bounds.getNorthEast());
 
-        var bbox = {
+        bbox = {
             xmin: sw.x,
             xmax: ne.x,
             ymin: sw.y,
             ymax: ne.y
         };
 
-        // Show the spinner
-        document.getElementById('spinner').classList.remove('d-none');
-        document.getElementById('plotted_lidar_data').innerHTML = '';
-
-        fetch(plot_url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ bbox: bbox })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.blob();
-        })
-        .then(imageBlob => {
-            const imageUrl = URL.createObjectURL(imageBlob);
-            document.getElementById('plotted_lidar_data').innerHTML = `<img src="${imageUrl}" alt="LiDAR Data Plot" class="img-fluid"/>`;
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
-            document.getElementById('plotted_lidar_data').innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
-        })
-        .finally(() => {
-            // Hide the spinner
-            document.getElementById('spinner').classList.add('d-none');
-            
-            // Immediately execute the fetch and stop execution until it's done
-            (async () => {
-                combinedArray = await fetchData();
-
-                // Draw the grid initially
-                drawGrid();
-            })();
-        });
+        fetchDataAndUpdate(bbox); // Call fetch function when a rectangle is drawn
     }
 });
+
+function fetchDataAndUpdate(bbox = null) {
+    // Show the spinner
+    document.getElementById('spinner').classList.remove('d-none');
+    document.getElementById('plotted_lidar_data').innerHTML = '';
+
+    const bokehValue = document.getElementById("bokehRange").value;
+    const distValue = document.getElementById("distRange").value;
+
+    console.log("Bokeh Value:", bokehValue);
+    console.log("Distance Value:", distValue);
+
+    fetch(plot_url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ bbox: bbox, bokeh: bokehValue, distance: distValue })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.blob();
+    })
+    .then(imageBlob => {
+        const imageUrl = URL.createObjectURL(imageBlob);
+        document.getElementById('plotted_lidar_data').innerHTML = `<img src="${imageUrl}" alt="LiDAR Data Plot" class="img-fluid"/>`;
+    })
+    .catch(error => {
+        console.error('There was a problem with the fetch operation:', error);
+        document.getElementById('plotted_lidar_data').innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+    })
+    .finally(async () => {
+        // Hide the spinner
+        document.getElementById('spinner').classList.add('d-none');
+        
+        // Fetch additional data and update the grid
+        combinedArray = await fetchData();
+        drawGrid();
+    });
+}
+

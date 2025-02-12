@@ -76,8 +76,8 @@ def sigma_decay(array, target, sigma=1.0):
     
 
 
-def plot_lidar(lateral_vals, depth_vals, Z, focal_value, flipped=False,     
-    bokeh=0, s_decay=100, alpha_decay=100):
+def plot_lidar(lateral_vals, depth_vals, Z, focal_value=20, flipped=False,     
+    bokeh=0, s_decay=10, alpha_decay=10, distance_slider=None):
 
     if flipped:
         lateral_vals = np.flip(lateral_vals)
@@ -86,8 +86,12 @@ def plot_lidar(lateral_vals, depth_vals, Z, focal_value, flipped=False,
     if bokeh is not None:
         bokeh += 1e-5
         bokeh = 1 / bokeh
-        s_decay = 10 * bokeh
-        alpha_decay = 10 * bokeh
+        s_decay = s_decay * bokeh
+        alpha_decay = alpha_decay * bokeh
+    
+    if distance_slider is not None:
+        range = max(depth_vals) - min(depth_vals)
+        focal_value = (range / 100) * distance_slider
 
     focal_abs_value = np.min(depth_vals) + focal_value
 
@@ -95,9 +99,9 @@ def plot_lidar(lateral_vals, depth_vals, Z, focal_value, flipped=False,
     plt.scatter(
         x=lateral_vals,
         y=Z,
-        # s= 1 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 100,
-        # alpha=sigma_decay(depth_vals, focal_abs_value, alpha_decay),
-        s=1,
+        s= 1 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 50,
+        alpha=sigma_decay(depth_vals, focal_abs_value, alpha_decay),
+        # s=1,
         color="white"
         )
     plt.axis('equal')
@@ -126,7 +130,12 @@ def lidart_plot(request):
     try:
         data = json.loads(request.body)
         bbox = data.get('bbox', {})
+        bokeh = int(data.get('bokeh', {}))
+        distance = int(data.get('distance', {}))
+        print(f"Recieved bokeh: {bokeh}")
+        print(f"Recieved distance: {distance}")
         print("Received bbox:", bbox)  # Log the bbox to console or handle as needed
+        # bbox = {'xmin': 683220.3131176644, 'xmax': 683250.0631176675, 'ymin': 248178.2511389775, 'ymax': 248245.50113899074}
     except json.JSONDecodeError as e:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
     except Exception as e:
@@ -187,11 +196,6 @@ def lidart_plot(request):
         "Z": laz["Z"] / 1000,
     })
 
-
-
-
-
-
     filtered = points[
         (points.X > minx) &
         (points.X < maxx) &
@@ -221,9 +225,11 @@ def lidart_plot(request):
         lateral = filtered.X
         depth = filtered.Y
 
+    bokeh /= 5
+    
     plot_lidar(
         lateral, depth, filtered.Z,
-        focal_value=30, bokeh=0
+        distance_slider=distance, bokeh=bokeh
         )
 
 
