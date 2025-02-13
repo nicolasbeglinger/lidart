@@ -76,13 +76,12 @@ def sigma_decay(array, target, sigma=1.0):
     
 
 
-def plot_lidar(lateral_vals, depth_vals, Z, focal_value=20, flipped=False,     
+def plot_lidar(lateral_vals, depth_vals, Z, focal_value=20, flip_lateral=False,
     bokeh=0, s_decay=10, alpha_decay=10, distance_slider=None):
 
-    if flipped:
-        lateral_vals = np.flip(lateral_vals)
-        Z = np.flip(Z)
-    
+    if flip_lateral:
+        lateral_vals = max(lateral_vals) - lateral_vals
+
     if bokeh is not None:
         bokeh += 1e-5
         bokeh = 1 / bokeh
@@ -203,7 +202,7 @@ def lidart_plot(request):
         (points.Y < maxy) 
     ]
 
-    cap = 60_000
+    cap = 30_000
     if filtered.shape[0] > cap:
         filtered = filtered.sample(cap)
 
@@ -218,18 +217,22 @@ def lidart_plot(request):
     #     "Y": y_rotated,
     #     "Z": filtered.Z
     # })
-    if maxx - minx > maxy - miny:
+
+    if maxx - minx > maxy - miny: # landscape
         lateral = filtered.Y
         depth = filtered.X
-    else:
+        flip_lateral = True
+    else: # portrait
         lateral = filtered.X
         depth = filtered.Y
+        flip_lateral = False
 
     bokeh /= 5
     
     plot_lidar(
         lateral, depth, filtered.Z,
-        distance_slider=distance, bokeh=bokeh
+        distance_slider=distance, bokeh=bokeh,
+        flip_lateral=flip_lateral
         )
 
 

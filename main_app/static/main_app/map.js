@@ -243,12 +243,12 @@ map.on('draw:created', function (e) {
     xrange = ne_21781.x - sw_21781.x
     yrange = ne_21781.y - sw_21781.y
 
-    if (yrange > xrange) {
+    if (yrange > xrange) { // portrait
         var arrowend = [sw.lat - 0.00005, sw.lng + (ne.lng - sw.lng) / 2]
         var arrowstart = [sw.lat - 0.0005, sw.lng + (ne.lng - sw.lng) / 2]
-    } else {
-        var arrowstart = [sw.lat + (ne.lat - sw.lat) / 2, ne.lng + 0.001]
-        var arrowend = [sw.lat + (ne.lat - sw.lat) / 2, ne.lng + 0.0001]
+    } else { // landscape
+        var arrowstart = [sw.lat + (ne.lat - sw.lat) / 2, sw.lng - 0.001]
+        var arrowend = [sw.lat + (ne.lat - sw.lat) / 2, sw.lng - 0.0001]
     }
 
     console.log(arrowstart)
