@@ -203,7 +203,7 @@ def lidart_plot(request):
         (points.Y < maxy) 
     ]
 
-    cap = 30_000
+    cap = 60_000
     if filtered.shape[0] > cap:
         filtered = filtered.sample(cap)
 

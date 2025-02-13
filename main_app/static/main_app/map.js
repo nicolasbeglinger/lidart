@@ -28,18 +28,23 @@ var layercontrol = L.control.layers([], overlayMaps).addTo(map);
 var bbox_for_display = new L.FeatureGroup();
 map.addLayer(bbox_for_display);
 
+var viewDirection = new L.FeatureGroup();
+map.addLayer(viewDirection);
+
 const bbox_id = bbox_for_display._leaflet_id;
+const viewDir_id = viewDirection._leaflet_id;
 
 // Function to draw the grid
 function drawGrid(sidelength=500) {
 
     map.eachLayer(function(layer) {
         if (!!layer.toGeoJSON) {  // Check if the layer has a toGeoJSON method, indicating it's a vector layer
-            if (layer._leaflet_id !== bbox_id) {  // Only proceed if the layer is not bbox_for_display
+            if (![bbox_id, viewDir_id].includes(layer._leaflet_id)) { 
+            // if (layer._leaflet_id !== bbox_id ) {  // Only proceed if the layer is not bbox_for_display
                 let isSublayer = false;
 
                 // Check if the layer is a sublayer of bbox_for_display
-                if (bbox_for_display.hasLayer(layer)) {
+                if (bbox_for_display.hasLayer(layer) | viewDirection.hasLayer(layer)) {
                     isSublayer = true;
                 }
 
@@ -105,9 +110,6 @@ function drawGrid(sidelength=500) {
     draw_cached(combinedArray);
 }
 
-var payload = null;
-//var bounds = null;
-
 
 async function fetchData() {
     return fetch(cached_coords_url, {
@@ -126,16 +128,17 @@ async function fetchData() {
         .then(data =>{
 
             // Define constant height and width
-            const size = 500; // Both width and height are 500
+            const size = 450; // Both width and height are 500
+            const border = 25
 
             // Combine the coordinates into the desired format with conversion
             const combinedArray = data.x.map((xmin, index) => {
-                var ymin = data.y[index];
+                var ymin = data.y[index] + border;
 
-                converted_xmin = L.CRS.EPSG2056.unproject(L.point(xmin, ymin)).lng;
-                converted_ymin = L.CRS.EPSG2056.unproject(L.point(xmin, ymin)).lat;
-                converted_xmax = L.CRS.EPSG2056.unproject(L.point(xmin + size, ymin + size)).lng;
-                converted_ymax = L.CRS.EPSG2056.unproject(L.point(xmin + size, ymin + size)).lat;
+                converted_xmin = L.CRS.EPSG2056.unproject(L.point(xmin + border, ymin)).lng;
+                converted_ymin = L.CRS.EPSG2056.unproject(L.point(xmin + border, ymin)).lat;
+                converted_xmax = L.CRS.EPSG2056.unproject(L.point(xmin + border + size, ymin + size)).lng;
+                converted_ymax = L.CRS.EPSG2056.unproject(L.point(xmin + border + size, ymin + size)).lat;
 
                 return [
                     [converted_ymin, converted_xmin],
@@ -200,44 +203,64 @@ map.addControl(drawControl);
 
 map.on('draw:drawstart', function (e) {
     bbox_for_display.clearLayers()
+    viewDirection.clearLayers()
 });
 
 let bokehSlider = document.getElementById("bokehRange");
 let distSlider = document.getElementById("distRange");
 let bbox = null;
 
-// Update value on input change
-bokehSlider.addEventListener("input", function () {
-    if (bbox) {
-        fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
-    }
-});
 
-distSlider.addEventListener("input", function () {
+$('button').on('click', function () {
     if (bbox) {
         fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
     }
 });
 
 map.on('draw:created', function (e) {
-    var type = e.layerType, layer = e.layer;
+    var layer = e.layer;
 
-    if (type === 'rectangle') {
-        bbox_for_display.addLayer(layer);
+    $('#button').text('Update Plot');
+    $('#button').removeClass('disabled');
 
-        var bounds = layer.getBounds();
-        var sw = L.CRS.EPSG21781.project(bounds.getSouthWest());
-        var ne = L.CRS.EPSG21781.project(bounds.getNorthEast());
+    bbox_for_display.addLayer(layer);
 
-        bbox = {
-            xmin: sw.x,
-            xmax: ne.x,
-            ymin: sw.y,
-            ymax: ne.y
-        };
+    var bounds = layer.getBounds();
 
-        fetchDataAndUpdate(bbox); // Call fetch function when a rectangle is drawn
+    var sw = bounds.getSouthWest()
+    var ne = bounds.getNorthEast()
+    
+    var sw_21781 = L.CRS.EPSG21781.project(sw);
+    var ne_21781 = L.CRS.EPSG21781.project(ne);
+    
+    bbox = {
+        xmin: sw_21781.x,
+        xmax: ne_21781.x,
+        ymin: sw_21781.y,
+        ymax: ne_21781.y
+    };
+
+    xrange = ne_21781.x - sw_21781.x
+    yrange = ne_21781.y - sw_21781.y
+
+    if (yrange > xrange) {
+        var arrowend = [sw.lat - 0.00005, sw.lng + (ne.lng - sw.lng) / 2]
+        var arrowstart = [sw.lat - 0.0005, sw.lng + (ne.lng - sw.lng) / 2]
+    } else {
+        var arrowstart = [sw.lat + (ne.lat - sw.lat) / 2, ne.lng + 0.001]
+        var arrowend = [sw.lat + (ne.lat - sw.lat) / 2, ne.lng + 0.0001]
     }
+
+    console.log(arrowstart)
+    console.log(arrowend)
+
+    
+    viewDirection.addLayer(
+        L.polyline([arrowstart, arrowend]).arrowheads()
+    );
+
+    fetchDataAndUpdate(bbox); // Call fetch function when a rectangle is drawn
+    
 });
 
 function fetchDataAndUpdate(bbox = null) {
@@ -279,7 +302,7 @@ function fetchDataAndUpdate(bbox = null) {
         
         // Fetch additional data and update the grid
         combinedArray = await fetchData();
-        drawGrid();
+        // drawGrid();
     });
 }
 
