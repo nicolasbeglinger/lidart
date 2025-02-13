@@ -1,10 +1,11 @@
 
 
 var overlayMaps = {
-    "swissIMAGE": L.tileLayer.swiss({
-        layer: "ch.swisstopo.swissimage",
-        maxNativeZoom: 28
-    }),
+    // "swissIMAGE": L.tileLayer.swiss({
+    //     layer: "ch.swisstopo.swissimage",
+    //     maxNativeZoom: 28
+    // }),
+    "Landeskarte": L.tileLayer.swiss(),
     "swissSURFACE3D Relief": L.tileLayer.swiss({
         format: "png",
         layer: "ch.swisstopo.swisssurface3d-reliefschattierung-multidirektional",
@@ -19,7 +20,7 @@ const map = L.map("mapid", {
     zoom: 23,
     minZoom: 20,
     maxZoom: 28,
-    layers: [L.tileLayer.swiss()]
+    layers: [L.tileLayer.swiss({layer: "ch.swisstopo.swissimage", maxNativeZoom: 28})]
 });
 
 var layercontrol = L.control.layers([], overlayMaps).addTo(map);
