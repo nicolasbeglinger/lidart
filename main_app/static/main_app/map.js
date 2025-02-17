@@ -1,10 +1,4 @@
-
-
 var overlayMaps = {
-    // "swissIMAGE": L.tileLayer.swiss({
-    //     layer: "ch.swisstopo.swissimage",
-    //     maxNativeZoom: 28
-    // }),
     "Landeskarte": L.tileLayer.swiss(),
     "swissSURFACE3D Relief": L.tileLayer.swiss({
         format: "png",
@@ -112,7 +106,7 @@ function drawGrid(sidelength=500) {
 }
 
 
-async function fetchData() {
+async function fetchCachedCoords() {
     return fetch(cached_coords_url, {
         method: 'GET',
         headers: {
@@ -147,7 +141,6 @@ async function fetchData() {
                 ];
             });
 
-            // console.log(combinedArray);
             return combinedArray;
         })
         .catch(error => console.error('Error: ', error));
@@ -159,7 +152,6 @@ function draw_cached(combinedArray) {
 
         let currentBounds = combinedArray[i];
 
-        // console.log(bounds);
         L.rectangle(currentBounds, {
             color: 'green',
             weight: 6,
@@ -173,7 +165,7 @@ var combinedArray = null;
 
 // Immediately execute the fetch and stop execution until it's done
 (async () => {
-    combinedArray = await fetchData();
+    combinedArray = await fetchCachedCoords();
 
     // Draw the grid initially
     drawGrid();
@@ -211,8 +203,7 @@ let bokehSlider = document.getElementById("bokehRange");
 let distSlider = document.getElementById("distRange");
 let bbox = null;
 
-
-$('button').on('click', function () {
+document.getElementById('button').addEventListener("click", function() {
     if (bbox) {
         fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
     }
@@ -221,8 +212,8 @@ $('button').on('click', function () {
 map.on('draw:created', function (e) {
     var layer = e.layer;
 
-    $('#button').text('Update Plot');
-    $('#button').removeClass('disabled');
+    document.getElementById('button').textContent = "Update Plot";
+    document.getElementById('button').classList.remove("disabled");
 
     bbox_for_display.addLayer(layer);
 
@@ -251,10 +242,6 @@ map.on('draw:created', function (e) {
         var arrowstart = [sw.lat + (ne.lat - sw.lat) / 2, sw.lng - 0.001]
         var arrowend = [sw.lat + (ne.lat - sw.lat) / 2, sw.lng - 0.0001]
     }
-
-    console.log(arrowstart)
-    console.log(arrowend)
-
     
     viewDirection.addLayer(
         L.polyline([arrowstart, arrowend]).arrowheads()
@@ -269,9 +256,10 @@ function fetchDataAndUpdate(bbox = null) {
     document.getElementById('spinner').classList.remove('d-none');
     document.getElementById('plotted_lidar_data').innerHTML = '';
 
-    const bokehValue = document.getElementById("bokehRange").value;
-    const distValue = document.getElementById("distRange").value;
+    const bokehValue = bokehSlider.value;
+    const distValue = distSlider.value;
 
+    console.log("bbox:", JSON.stringify(bbox));
     console.log("Bokeh Value:", bokehValue);
     console.log("Distance Value:", distValue);
 
@@ -292,18 +280,13 @@ function fetchDataAndUpdate(bbox = null) {
     .then(imageBlob => {
         const imageUrl = URL.createObjectURL(imageBlob);
         document.getElementById('plotted_lidar_data').innerHTML = `<img src="${imageUrl}" alt="LiDAR Data Plot" class="img-fluid"/>`;
+
+        // Hide the spinner
+        document.getElementById('spinner').classList.add('d-none');
     })
     .catch(error => {
         console.error('There was a problem with the fetch operation:', error);
         document.getElementById('plotted_lidar_data').innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
     })
-    .finally(async () => {
-        // Hide the spinner
-        document.getElementById('spinner').classList.add('d-none');
-        
-        // Fetch additional data and update the grid
-        combinedArray = await fetchData();
-        // drawGrid();
-    });
 }
 
