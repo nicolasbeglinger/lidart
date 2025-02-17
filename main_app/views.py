@@ -1,20 +1,20 @@
 from django.shortcuts import render
 from django.conf import settings
-
-import matplotlib.pyplot as plt
 from django.http import HttpResponse
-from io import BytesIO
 
-# lidart_plot
+from io import BytesIO
+import os
+import urllib.request
+
 import laspy
 import numpy as np
 from sklearn.decomposition import PCA
 import pandas as pd
-import os
-import urllib.request
+
+
 import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+matplotlib.use("Agg")
 plt.style.use('dark_background')
 
 from django.http import JsonResponse

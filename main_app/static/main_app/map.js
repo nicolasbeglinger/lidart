@@ -67,6 +67,7 @@ function drawGrid(sidelength=500) {
     let ymin = null;
     let ymax = null;
 
+    let cached_exact_bounds = [];
 
     // Loop through the grid coordinates
     for (let x = startX; x < endX; x += 500) {
@@ -89,20 +90,41 @@ function drawGrid(sidelength=500) {
                 [ymax, xmax]
             ];
 
+            const bounds2056 = [
+                [y, x],
+                [y + 500, x + 500]
+            ]
+
+            // do the cached bounds contain the bounds2056?
+            if (cached_bounds.some(bounds => JSON.stringify(bounds) === JSON.stringify(bounds2056))) {
+                cached_exact_bounds.push(bounds);
+                continue
+            } 
+
             // Draw the rectangle using the stored coordinates
             L.rectangle(bounds, {
-                color: 'red',
+                color: "red",
                 weight: 6,
                 fillOpacity: 0,
                 interactive: false  // Ensure grid is non-interactive
-            }).addTo(map);
+            }).addTo(map);            
 
             ymin = ymax * 1;
         }
         ymin = null;
         xmin = xmax * 1;
     }
-    draw_cached(combinedArray);
+
+    cached_exact_bounds.forEach(bounds => {
+        // Draw the rectangle using the stored coordinates
+        L.rectangle(bounds, {
+            color: "green",
+            weight: 6,
+            fillOpacity: 0,
+            interactive: false  // Ensure grid is non-interactive
+        }).addTo(map);
+    });
+
 }
 
 
@@ -123,23 +145,19 @@ async function fetchCachedCoords() {
         .then(data =>{
 
             // Define constant height and width
-            const size = 450; // Both width and height are 500
-            const border = 25
+            const size = 500; // Both width and height are 500
 
             // Combine the coordinates into the desired format with conversion
             const combinedArray = data.x.map((xmin, index) => {
-                var ymin = data.y[index] + border;
-
-                converted_xmin = L.CRS.EPSG2056.unproject(L.point(xmin + border, ymin)).lng;
-                converted_ymin = L.CRS.EPSG2056.unproject(L.point(xmin + border, ymin)).lat;
-                converted_xmax = L.CRS.EPSG2056.unproject(L.point(xmin + border + size, ymin + size)).lng;
-                converted_ymax = L.CRS.EPSG2056.unproject(L.point(xmin + border + size, ymin + size)).lat;
+                var ymin = data.y[index];
 
                 return [
-                    [converted_ymin, converted_xmin],
-                    [converted_ymax, converted_xmax]
+                    [ymin, xmin],
+                    [ymin + size, xmin + size]
                 ];
             });
+
+            console.log(combinedArray);
 
             return combinedArray;
         })
@@ -147,25 +165,11 @@ async function fetchCachedCoords() {
 }
 
 
-function draw_cached(combinedArray) {
-    for (let i = 0; i < combinedArray.length; i += 1) {
-
-        let currentBounds = combinedArray[i];
-
-        L.rectangle(currentBounds, {
-            color: 'green',
-            weight: 6,
-            fillOpacity: 0,
-            interactive: false  // Ensure grid is non-interactive
-        }).addTo(map);
-    }
-}
-
-var combinedArray = null;
 
 // Immediately execute the fetch and stop execution until it's done
+let cached_bounds;
 (async () => {
-    combinedArray = await fetchCachedCoords();
+    cached_bounds = await fetchCachedCoords();
 
     // Draw the grid initially
     drawGrid();
@@ -201,7 +205,7 @@ map.on('draw:drawstart', function (e) {
 
 let bokehSlider = document.getElementById("bokehRange");
 let distSlider = document.getElementById("distRange");
-let bbox = null;
+let bbox;
 
 document.getElementById('button').addEventListener("click", function() {
     if (bbox) {
@@ -287,6 +291,11 @@ function fetchDataAndUpdate(bbox = null) {
     .catch(error => {
         console.error('There was a problem with the fetch operation:', error);
         document.getElementById('plotted_lidar_data').innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+    })
+    .finally(async() => {
+        // important if cached tiles have changed
+        cached_bounds = await fetchCachedCoords();
+        drawGrid();
     })
 }
 
