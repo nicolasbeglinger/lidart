@@ -215,11 +215,20 @@ reloadButton.addEventListener("click", function() {
     }
 });
 
+let downloadButton = document.getElementById("download-button");
+let imageUrl;
+
+
+downloadButton.addEventListener("click", function() {
+
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = 'lidart_plot'; // Filename for the downloaded file
+    link.click();
+})
+
 map.on('draw:created', function (e) {
     var layer = e.layer;
-
-    document.getElementById('button').textContent = "Update Plot";
-    document.getElementById('button').classList.remove("disabled");
 
     bbox_for_display.addLayer(layer);
 
@@ -284,7 +293,7 @@ function fetchDataAndUpdate(bbox = null) {
         return response.blob();
     })
     .then(imageBlob => {
-        const imageUrl = URL.createObjectURL(imageBlob);
+        imageUrl = URL.createObjectURL(imageBlob);
         document.getElementById('plotted_lidar_data').innerHTML = `<img src="${imageUrl}" alt="LiDAR Data Plot" class="img-fluid"/>`;
 
         // Hide the spinner
@@ -294,6 +303,10 @@ function fetchDataAndUpdate(bbox = null) {
         // Activate reload button
         reloadButton.classList.remove("disabled");
         reloadButton.textContent = "Update Plot";
+
+        // Display download button
+        downloadButton.classList.remove('d-none')
+
     })
     .catch(error => {
         console.error('There was a problem with the fetch operation:', error);
