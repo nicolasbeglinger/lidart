@@ -119,7 +119,7 @@ function drawGrid(sidelength=500) {
         // Draw the rectangle using the stored coordinates
         L.rectangle(bounds, {
             color: "green",
-            weight: 6,
+            weight: 7,
             fillOpacity: 0,
             interactive: false  // Ensure grid is non-interactive
         }).addTo(map);
@@ -198,16 +198,18 @@ var drawControl = new L.Control.Draw({
 map.addControl(drawControl);
 
 
-map.on('draw:drawstart', function (e) {
+map.on('draw:drawstart', function () {
     bbox_for_display.clearLayers()
     viewDirection.clearLayers()
 });
 
-let bokehSlider = document.getElementById("bokehRange");
-let distSlider = document.getElementById("distRange");
+let bokehSlider = document.getElementById("bokeh-range");
+let distSlider = document.getElementById("distance-range");
+let reloadButton = document.getElementById("reload-button");
+let spinner = document.getElementById("spinner");
 let bbox;
 
-document.getElementById('button').addEventListener("click", function() {
+reloadButton.addEventListener("click", function() {
     if (bbox) {
         fetchDataAndUpdate(bbox); // Call the fetch function when the bokehSlider changes
     }
@@ -257,7 +259,7 @@ map.on('draw:created', function (e) {
 
 function fetchDataAndUpdate(bbox = null) {
     // Show the spinner
-    document.getElementById('spinner').classList.remove('d-none');
+    spinner.classList.remove('d-none');
     document.getElementById('plotted_lidar_data').innerHTML = '';
 
     const bokehValue = bokehSlider.value;
@@ -286,7 +288,12 @@ function fetchDataAndUpdate(bbox = null) {
         document.getElementById('plotted_lidar_data').innerHTML = `<img src="${imageUrl}" alt="LiDAR Data Plot" class="img-fluid"/>`;
 
         // Hide the spinner
-        document.getElementById('spinner').classList.add('d-none');
+        spinner.classList.add('d-none');
+
+        
+        // Activate reload button
+        reloadButton.classList.remove("disabled");
+        reloadButton.textContent = "Update Plot";
     })
     .catch(error => {
         console.error('There was a problem with the fetch operation:', error);
