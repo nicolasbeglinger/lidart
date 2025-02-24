@@ -77,7 +77,7 @@ def sigma_decay(array, target, sigma=1.0):
 
 
 def plot_lidar(lateral_vals, depth_vals, Z, focal_value=20, flip_lateral=False,
-    bokeh=0, s_decay=10, alpha_decay=10, distance_slider=None):
+    bokeh=None, s_decay=10, alpha_decay=5, distance_slider=None):
 
     if flip_lateral:
         lateral_vals = max(lateral_vals) - lateral_vals
@@ -98,10 +98,11 @@ def plot_lidar(lateral_vals, depth_vals, Z, focal_value=20, flip_lateral=False,
     plt.scatter(
         x=lateral_vals,
         y=Z,
-        s= 1 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 50,
+        s= 2 + (1 - sigma_decay(depth_vals, focal_abs_value, s_decay)) * 100,
         alpha=sigma_decay(depth_vals, focal_abs_value, alpha_decay),
-        # s=1,
-        color="white"
+        color="white",
+        # marker=".",
+        linewidths=0
         )
     plt.axis('equal')
     plt.axis('off')
@@ -202,11 +203,11 @@ def lidart_plot(request):
         (points.Y < maxy) 
     ]
 
-    cap = 30_000
+    cap = 60_000
     if filtered.shape[0] > cap:
         filtered = filtered.sample(cap)
 
-    print(filtered.shape[0])
+    print(f"Number of Displayed Points: {filtered.shape[0]}")
 
     # x_rotated, y_rotated = rotate_points(
     #     filtered.X,
