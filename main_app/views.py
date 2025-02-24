@@ -114,7 +114,7 @@ def home(request):
 
 @require_http_methods(["GET"])
 def get_cached_coords(request):
-    filenames = os.listdir("tmp")
+    filenames = os.listdir("/home/lidart/lidart/tmp")
 
     d = {
         'x': [int(filename.split("_")[0]) for filename in filenames],
@@ -203,7 +203,7 @@ def lidart_plot(request):
         (points.Y < maxy) 
     ]
 
-    cap = 60_000
+    cap = 30_000
     if filtered.shape[0] > cap:
         filtered = filtered.sample(cap)
 
